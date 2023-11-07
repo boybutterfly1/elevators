@@ -8,8 +8,10 @@ export const useElevatorStore = defineStore('elevator', () => {
   const floorsQueue = ref<number[]>([])
 
   function callElevator(floor: number) {
-    floorsQueue.value.push(floor)
-    elevatorMoveTo(floor, findNearestElevator(floor))
+    if (!elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === floor)) {
+      floorsQueue.value.push(floor)
+      elevatorMoveTo(floor)
+    }
   }
   function findNearestElevator(targetFloor: number): ElevatorT | null {
     let nearestElevator : ElevatorT | null = null
@@ -21,10 +23,16 @@ export const useElevatorStore = defineStore('elevator', () => {
         nearestElevator = elevator
       }
     })
-
     return nearestElevator
   }
-  function elevatorMoveTo(targetFloor: number, elevator: ElevatorT | null) {
+  async function elevatorMoveTo(targetFloor: number) {
+    let elevator: ElevatorT | null = findNearestElevator(targetFloor)
+
+    while (!elevator) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      elevator = findNearestElevator(targetFloor)
+    }
+
     if (elevator) {
       elevator ? elevator.targetFloor = targetFloor : null
       elevator.direction = targetFloor > elevator.currentFloor ? 'Up' : 'Down'
@@ -34,7 +42,7 @@ export const useElevatorStore = defineStore('elevator', () => {
 
       if (elevatorDiv) {
         const direction = elevator.direction === 'Up' ? 1 : -1
-        const duration = 1000 * distance
+        const duration: number = 1000 * distance
 
         elevatorDiv.classList.add('elevator--moving')
         elevatorDiv.style.transition = `bottom ${duration}ms ease-in-out`
@@ -46,32 +54,34 @@ export const useElevatorStore = defineStore('elevator', () => {
           elevatorDiv.classList.add('elevator_doors--open')
 
           setTimeout(() => {
-            elevatorDiv.classList.remove('elevator_doors--open')
-            elevator.direction = null
-            elevator.currentFloor = targetFloor
-            elevator.targetFloor = null
-            floorsQueue.value = floorsQueue.value.filter(floor => floor !== targetFloor)
+            if (elevator) {
+              elevatorDiv.classList.remove('elevator_doors--open')
+              elevator.direction = null
+              elevator.currentFloor = targetFloor
+              elevator.targetFloor = null
+              floorsQueue.value = floorsQueue.value.filter((floor: number) => floor !== targetFloor)
+            }
 
             setTimeout(() => {
               if (!floorsQueue.value.length &&
-                  !elevators.value.some((elevator: ElevatorT) => elevator.currentFloor === 1) &&
-                  !elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === 1))
-              {
-                elevator.targetFloor = 1
-                elevatorMoveTo(1, findNearestElevator(1))
+                !elevators.value.some((elevator: ElevatorT) => elevator.currentFloor === 1) &&
+                !elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === 1)) {
+                elevator? elevator.targetFloor = 1 : null
+                elevatorMoveTo(1)
               }
             }, 1000)
-          }, 1000)
+          }, 3000)
         }, duration)
       }
     }
   }
-    return {
-      elevatorsCount,
-      floorsCount,
-      elevators,
-      floorsQueue,
-      callElevator,
-      elevatorMoveTo,
-    }
+
+  return {
+    elevatorsCount,
+    floorsCount,
+    elevators,
+    floorsQueue,
+    callElevator,
+    elevatorMoveTo,
+  }
 })
