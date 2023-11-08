@@ -35,7 +35,6 @@ const floors = computed<number[]>(() => {
 </script>
 
 <style lang="sass">
-
 .floor
   padding: 0 50px
   display: flex

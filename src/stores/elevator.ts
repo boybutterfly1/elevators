@@ -2,7 +2,7 @@ import {defineStore} from 'pinia'
 import {ref} from "vue"
 import {ElevatorT} from "@/types/types"
 export const useElevatorStore = defineStore('elevator', () => {
-  const elevatorsCount = ref(3)
+  const elevatorsCount = ref(1)
   const floorsCount = ref(10)
   const elevators = ref<ElevatorT[]>([])
   const floorsQueue = ref<number[]>([])
@@ -14,19 +14,27 @@ export const useElevatorStore = defineStore('elevator', () => {
     }
   }
   function findNearestElevator(targetFloor: number): ElevatorT | null {
-    let nearestElevator : ElevatorT | null = null
-    let minDistance: number = floorsCount.value * 2
+    let nearestElevator: ElevatorT | null = null
+    let minDistance: number = floorsCount.value
 
-    elevators.value.filter((elevator: ElevatorT) => elevator.direction === null).forEach((elevator: ElevatorT) => {
-      if (Math.abs(targetFloor - elevator.currentFloor) < minDistance) {
-        minDistance = Math.abs(targetFloor - elevator.currentFloor)
-        nearestElevator = elevator
-      }
-    })
+    elevators.value
+      .filter((elevator: ElevatorT) => elevator.direction === null)
+      .forEach((elevator: ElevatorT) => {
+        const distance: number = Math.abs(targetFloor - elevator.currentFloor)
+
+        if (distance < minDistance) {
+          minDistance = distance
+          nearestElevator = elevator
+        }
+      })
+    nearestElevator? nearestElevator.targetFloor: null
+
     return nearestElevator
   }
-  async function elevatorMoveTo(targetFloor: number) {
-    let elevator: ElevatorT | null = findNearestElevator(targetFloor)
+  async function elevatorMoveTo(targetFloor: number, goingElevator?: ElevatorT | null) {
+    let elevator: ElevatorT | null = null
+
+    elevator = goingElevator ? goingElevator : findNearestElevator(targetFloor)
 
     while (!elevator) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -34,7 +42,7 @@ export const useElevatorStore = defineStore('elevator', () => {
     }
 
     if (elevator) {
-      elevator ? elevator.targetFloor = targetFloor : null
+      elevator.targetFloor = targetFloor
       elevator.direction = targetFloor > elevator.currentFloor ? 'Up' : 'Down'
 
       const elevatorDiv = document.getElementById(String(elevator.id + '-elevator'))
@@ -49,6 +57,7 @@ export const useElevatorStore = defineStore('elevator', () => {
         elevatorDiv.style.bottom = parseInt(getComputedStyle(elevatorDiv).bottom) + 150 * direction * distance + 'px'
 
         setTimeout(() => {
+          floorsQueue.value = floorsQueue.value.filter((floor: number) => floor !== targetFloor)
           elevatorDiv.classList.remove('elevator--moving')
           elevatorDiv.style.transition = ''
           elevatorDiv.classList.add('elevator_doors--open')
@@ -59,13 +68,13 @@ export const useElevatorStore = defineStore('elevator', () => {
               elevator.direction = null
               elevator.currentFloor = targetFloor
               elevator.targetFloor = null
-              floorsQueue.value = floorsQueue.value.filter((floor: number) => floor !== targetFloor)
             }
 
             setTimeout(() => {
-              if (!floorsQueue.value.length &&
+              if (
                 !elevators.value.some((elevator: ElevatorT) => elevator.currentFloor === 1) &&
-                !elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === 1)) {
+                !elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === 1))
+              {
                 elevator? elevator.targetFloor = 1 : null
                 elevatorMoveTo(1)
               }
