@@ -1,16 +1,26 @@
 <template>
   <div class="house">
-    <floor/>
+    <floor
+        v-for="floor in floors"
+        :floor="floor"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted, watch} from "vue"
+import {computed, onBeforeMount, onMounted, onUpdated, watch} from "vue"
 import {useElevatorStore} from "@/stores/elevator";
-import {ElevatorT} from "@/types/types";
 import Floor from "@/components/Floor.vue";
+import {ElevatorT} from "@/types/types";
 
 const elevatorStore = useElevatorStore()
+const floors = computed<number[]>(() => {
+  let floors = []
+  for (let i = 1; i <= elevatorStore.floorsCount; i++) {
+    floors.push(i)
+  }
+  return floors.reverse()
+})
 
 onMounted(() => {
   const floorsQueueLS: number[] = JSON.parse(String(localStorage.getItem('floorsQueue')))
@@ -18,10 +28,22 @@ onMounted(() => {
 
   if (floorsQueueLS) {
     elevatorStore.floorsQueue = floorsQueueLS
+    elevatorStore.floorsQueue.forEach(floor => {
+      elevatorStore.elevatorMoveTo(floor)
+    })
   }
 
   if (elevatorsLS) {
     elevatorStore.elevators = elevatorsLS
+    elevatorStore.elevators.forEach((elevator: ElevatorT) => {
+      const elevatorDiv = document.getElementById(elevator.id + '-elevator')
+      if (elevatorDiv) {
+        elevatorDiv.style.bottom = 150 * (elevator.currentFloor - 1) + 'px'
+      }
+      if (elevator.targetFloor) {
+        elevatorStore.elevatorMoveTo(elevator.targetFloor, elevator)
+      }
+    })
   } else {
     for (let i = 1; i <= elevatorStore.elevatorsCount; i++) {
       elevatorStore.elevators.push({
@@ -32,16 +54,6 @@ onMounted(() => {
       })
     }
   }
-
-  elevatorStore.elevators.forEach((elevator: ElevatorT) => {
-    const elevatorDiv = document.getElementById(elevator.id + '-elevator')
-    if (elevatorDiv) {
-      elevatorDiv.style.bottom = 150 * (elevator.currentFloor - 1) + 'px'
-    }
-    if (elevator.targetFloor) {
-      elevatorStore.elevatorMoveTo(elevator.targetFloor, elevator)
-    }
-  })
 })
 
 watch(() => (elevatorStore.elevators), () => {

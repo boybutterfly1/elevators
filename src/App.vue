@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import House from "@/components/House.vue";
+import House from "@/components/House.vue"
 </script>
 
 <style lang="sass">
@@ -11,6 +11,7 @@ import House from "@/components/House.vue";
   margin: 0
   padding: 0
   box-sizing: border-box
+
 #app
   font-family: Avenir, Helvetica, Arial, sans-serif
   -webkit-font-smoothing: antialiased

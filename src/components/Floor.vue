@@ -1,37 +1,52 @@
 <template>
-  <div v-for="floor in floors" class="floor">
+  <div
+      class="floor"
+      :id="props.floor + '-floor'"
+  >
     <div v-for="shaft in elevatorStore.elevatorsCount" class="floor_shaft">
       <elevator
-          v-if="floor === 1"
-          :id="shaft"
+          v-if="props.floor === 1"
+          :id="shaft + '-elevator'"
       />
     </div>
     <div class="floor_properties">
         <span class="floor_properties_info">
-          {{floor}}
+          {{props.floor}}
         </span>
       <div
           class="floor_properties_btn"
-          :class="{'floor_properties_btn--active' : elevatorStore.floorsQueue.includes(floor)}"
-          @click="elevatorStore.callElevator(floor)"
+          :class="{'floor_properties_btn--active' : elevatorStore.floorsQueue.includes(props.floor)}"
+          @click="elevatorStore.callElevator(props.floor)"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {computed} from "vue"
 import Elevator from "@/components/Elevator.vue";
 import {useElevatorStore} from "@/stores/elevator";
+import {onMounted} from "vue";
 
+const props = defineProps<{ floor: number }>()
 const elevatorStore = useElevatorStore()
-const floors = computed<number[]>(() => {
-  let floors = []
-  for (let i = 1; i <= elevatorStore.floorsCount; i++) {
-    floors.push(i)
-  }
-  return floors.reverse()
-})
+
+// onMounted(() => {
+//   const floorElement = document.getElementById(props.floor + '-floor')
+//
+//   const handleIntersection = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+//     entries.forEach((entry) => {
+//       if (entry.isIntersecting) {
+//         console.log(entry.target.id)
+//       }
+//     })
+//   }
+//   const observer = new IntersectionObserver(handleIntersection, {
+//     root: null,
+//     rootMargin: '0px',
+//     threshold: 0.025
+//   });
+//   floorElement ? observer.observe(floorElement) : null
+// })
 </script>
 
 <style lang="sass">

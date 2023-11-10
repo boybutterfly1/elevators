@@ -1,7 +1,7 @@
 <template>
   <div
       class="elevator"
-      :id="props.id + '-elevator'"
+      :id="props.id"
   >
     <div
         class="elevator_doors"
@@ -14,10 +14,26 @@
 
 <script setup lang="ts">
 
-const props = defineProps<{
-  id: number
-}>()
+import {ElevatorT} from "@/types/types";
+import {onMounted} from "vue";
+import {useElevatorStore} from "@/stores/elevator";
 
+const props = defineProps<{
+  id: string
+}>()
+const elevatorStore = useElevatorStore()
+
+// onMounted(() => {
+//   const elevatorsLS: ElevatorT[] = JSON.parse(String(localStorage.getItem('elevators')))
+//   const elevatorElement = document.getElementById(props.id)
+//   const elevator = elevatorsLS.find((elevator: ElevatorT) => elevator.id === parseInt(props.id))
+//   if (elevatorElement && elevator) {
+//     elevatorElement.style.bottom = 150 * (elevator.currentFloor - 1) + 'px'
+//   }
+//   if (elevator && elevator.targetFloor) {
+//     elevatorStore.elevatorMoveTo(elevator.targetFloor, elevator)
+//   }
+// })
 </script>
 
 <style lang="sass">

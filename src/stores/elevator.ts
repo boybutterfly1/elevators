@@ -2,17 +2,26 @@ import {defineStore} from 'pinia'
 import {ref} from "vue"
 import {ElevatorT} from "@/types/types"
 export const useElevatorStore = defineStore('elevator', () => {
-  const elevatorsCount = ref(1)
+  const elevatorsCount = ref(3)
   const floorsCount = ref(10)
   const elevators = ref<ElevatorT[]>([])
   const floorsQueue = ref<number[]>([])
 
-  function callElevator(floor: number) {
+  async function callElevator(floor: number) {
     if (!elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === floor)) {
       floorsQueue.value.push(floor)
-      elevatorMoveTo(floor)
+      await elevatorMoveTo(floor)
+    }
+
+    if (!floorsQueue.value.includes(1) &&
+      !elevators.value.some((elevator: ElevatorT) => elevator.currentFloor === 1 && elevator.targetFloor === null) &&
+      !elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === 1))
+    {
+      floorsQueue.value.push(1)
+      await elevatorMoveTo(1)
     }
   }
+
   function findNearestElevator(targetFloor: number): ElevatorT | null {
     let nearestElevator: ElevatorT | null = null
     let minDistance: number = floorsCount.value
@@ -27,11 +36,11 @@ export const useElevatorStore = defineStore('elevator', () => {
           nearestElevator = elevator
         }
       })
-    nearestElevator? nearestElevator.targetFloor: null
 
     return nearestElevator
   }
   async function elevatorMoveTo(targetFloor: number, goingElevator?: ElevatorT | null) {
+
     let elevator: ElevatorT | null = null
 
     elevator = goingElevator ? goingElevator : findNearestElevator(targetFloor)
@@ -56,6 +65,15 @@ export const useElevatorStore = defineStore('elevator', () => {
         elevatorDiv.style.transition = `bottom ${duration}ms ease-in-out`
         elevatorDiv.style.bottom = parseInt(getComputedStyle(elevatorDiv).bottom) + 150 * direction * distance + 'px'
 
+        const updateFloor = setInterval(() => {
+          if (elevator && elevator.targetFloor === null) return
+          elevator ? elevator.currentFloor += direction : null
+
+          if (elevator && elevator.currentFloor === targetFloor) {
+            clearInterval(updateFloor)
+          }
+        }, 1000);
+
         setTimeout(() => {
           floorsQueue.value = floorsQueue.value.filter((floor: number) => floor !== targetFloor)
           elevatorDiv.classList.remove('elevator--moving')
@@ -69,17 +87,7 @@ export const useElevatorStore = defineStore('elevator', () => {
               elevator.currentFloor = targetFloor
               elevator.targetFloor = null
             }
-
-            setTimeout(() => {
-              if (
-                !elevators.value.some((elevator: ElevatorT) => elevator.currentFloor === 1) &&
-                !elevators.value.some((elevator: ElevatorT) => elevator.targetFloor === 1))
-              {
-                elevator? elevator.targetFloor = 1 : null
-                elevatorMoveTo(1)
-              }
-            }, 1000)
-          }, 3000)
+          }, 2500)
         }, duration)
       }
     }
